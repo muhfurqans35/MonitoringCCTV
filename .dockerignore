@@ -1,0 +1,7 @@
+target/
+dist/
+node_modules/
+.git/
+*.db
+*.db-journal
+.env

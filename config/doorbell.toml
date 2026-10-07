@@ -1,0 +1,85 @@
+# Konfigurasi modul doorbell (bel pintu interaktif untuk paket kost).
+# Ubah file ini lalu restart service `doorbell`: perilaku berubah tanpa mengubah kode/firmware.
+# Rahasia lewat environment: TELEGRAM_BOT_TOKEN, TELEGRAM_OWNER_CHAT_ID, DOORBELL_CAMERA_TOKEN.
+# Daftar kamar TIDAK di sini: diambil dari tabel `rooms` (satu sumber kebenaran smart-kost).
+
+door_id = "depan"                 # harus sama dengan DOOR_ID di firmware (secrets.h)
+location = "Pintu depan"          # tampil di tabel devices / dashboard
+utc_offset_minutes = 480          # WITA
+default_mode = "normal"           # normal | sibuk (lihat [texts.*])
+summary_hour = 20                 # ringkasan harian ke pengelola (jam lokal)
+package_location = "area paket di sebelah kanan pintu"   # dipakai di pesan Telegram
+managers = []                     # chat_id pengelola TAMBAHAN selain TELEGRAM_OWNER_CHAT_ID
+
+# Tujuan kunjungan di menu layar (maks 4, urutan = urutan tombol).
+# Label & teks layar HARUS ASCII (font bawaan TFT). notify: "resident" | "manager".
+[[purposes]]
+id = "paket"
+label = "Antar Paket"
+needs_room = true
+notify = "resident"
+verify_zone = true                # verifikasi kamera pada area paket + siklus paket lengkap
+
+[[purposes]]
+id = "makanan"
+label = "Pengantar Makanan"
+needs_room = true
+notify = "resident"
+
+[[purposes]]
+id = "pengelola"
+label = "Hubungi Pengelola"
+needs_room = false
+notify = "manager"
+
+[[purposes]]
+id = "lainnya"
+label = "Lainnya"
+needs_room = false
+notify = "manager"
+
+# Teks di layar setelah tamu konfirmasi, per mode.
+# Aturan: jangan menyiratkan bahwa kost sedang kosong (divalidasi otomatis).
+[texts.normal]
+paket = "Silakan taruh paket di area bertanda. Penghuni akan diberi tahu."
+makanan = "Terima kasih. Penghuni akan diberi tahu."
+pengelola = "Pengelola akan dihubungi. Mohon tunggu sebentar."
+lainnya = "Pesan Anda diteruskan ke pengelola. Mohon tunggu."
+
+[texts.sibuk]
+paket = "Silakan taruh paket di area bertanda. Penghuni akan diberi tahu."
+makanan = "Terima kasih. Mohon tunggu di depan, penghuni akan diberi tahu."
+pengelola = "Pesan diteruskan ke pengelola. Mohon tunggu sebentar."
+lainnya = "Pesan diteruskan ke pengelola. Mohon tunggu sebentar."
+
+[ui]
+idle_timeout_s = 30
+done_screen_s = 8
+
+[camera]
+host = ""                         # kosong = pakai IP yang dilaporkan node lewat MQTT
+port = 80
+token = ""                        # atau env DOORBELL_CAMERA_TOKEN (sama dengan DEVICE_TOKEN di firmware)
+timeout_s = 4
+
+# Deteksi zona paket (baseline frame-difference). roi = [x, y, lebar, tinggi], pecahan 0..1.
+# Nilai awal berasal dari gambar sintetis: SETEL dengan paket & cahaya nyata (lihat docs/DOORBELL.md).
+[zone]
+roi = [0.15, 0.35, 0.70, 0.50]
+pix_thr = 25                      # selisih abu-abu per piksel dianggap "berubah"
+occupied_frac = 0.03              # >= ini dibanding referensi kosong => ada_paket
+obstructed_frac = 0.60            # >= ini => terhalang
+change_frac = 0.03                # perubahan sebelum-sesudah agar paket dianggap terverifikasi
+motion_frac = 0.01                # gerakan antar-frame di bawah ini = pemandangan stabil
+stable_polls = 2
+poll_interval_s = 4.0
+verify_timeout_s = 120.0
+idle_check_s = 60.0               # cek zona berkala hanya bila ada paket menunggu
+empty_hits_to_close = 2
+min_age_autoclose_s = 300.0
+
+[retention]
+photo_days = 7
+reminder_after_h = 6
+reminder_max = 2
+invite_ttl_h = 24

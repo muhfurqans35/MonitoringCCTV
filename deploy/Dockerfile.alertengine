@@ -1,0 +1,30 @@
+# syntax=docker/dockerfile:1
+
+FROM lukemathwalker/cargo-chef:latest-rust-1.78-bookworm AS chef
+WORKDIR /app
+
+FROM chef AS planner
+COPY Cargo.toml Cargo.lock* ./
+COPY crates ./crates
+RUN cargo chef prepare --recipe-path recipe.json
+
+FROM chef AS builder
+COPY --from=planner /app/recipe.json recipe.json
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/app/target \
+    cargo chef cook --release --recipe-path recipe.json -p alertengine
+
+COPY Cargo.toml Cargo.lock* ./
+COPY crates ./crates
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/app/target \
+    cargo build --release -p alertengine && \
+    cp target/release/alertengine /app/alertengine-bin
+
+FROM debian:bookworm-slim
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates libsqlite3-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /app/alertengine-bin /usr/local/bin/alertengine
+
+ENTRYPOINT ["/usr/local/bin/alertengine"]

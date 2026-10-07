@@ -1,0 +1,22 @@
+# syntax=docker/dockerfile:1
+
+FROM rust:latest AS builder
+WORKDIR /app
+
+RUN rustup target add wasm32-unknown-unknown
+
+# Pakai binary release trunk yang sudah dikompilasi (jauh lebih cepat & hemat space
+# dibanding `cargo install trunk` yang compile trunk dari source).
+RUN curl -L https://github.com/trunk-rs/trunk/releases/latest/download/trunk-x86_64-unknown-linux-gnu.tar.gz \
+    | tar -xzf- -C /usr/local/bin
+
+COPY frontend-leptos ./frontend-leptos
+WORKDIR /app/frontend-leptos
+
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/app/frontend-leptos/target \
+    trunk build --release
+
+FROM nginx:alpine
+COPY --from=builder /app/frontend-leptos/dist /usr/share/nginx/html
+EXPOSE 80

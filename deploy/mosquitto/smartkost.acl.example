@@ -1,0 +1,20 @@
+# ACL Mosquitto Smart Kost: salin ke /etc/mosquitto/smartkost.acl lalu sesuaikan.
+# Satu akun per perangkat: bila satu ESP32 bocor, ia hanya bisa memakai topiknya sendiri.
+
+# --- layanan di Raspberry Pi (MQTT_USERNAME di .env) ---
+user smartkost
+topic readwrite kost/#
+
+# --- node bel pintu "depan" (MQTT_USER/MQTT_PASS di secrets.h firmware doorbell) ---
+user door-depan
+topic write kost/door/depan/status
+topic write kost/door/depan/event/#
+topic read kost/door/depan/cmd/#
+
+# --- contoh node sensor kamar 101 (ulangi per kamar) ---
+user room-101
+topic write kost/room/101/#
+
+# --- akun hanya-baca untuk MQTT Explorer di laptop pemilik ---
+user monitor
+topic read kost/#

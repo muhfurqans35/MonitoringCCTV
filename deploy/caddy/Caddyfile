@@ -1,0 +1,25 @@
+{
+    # Untuk development lokal (tanpa domain publik), Caddy tetap bisa serve HTTP biasa.
+    # Ganti :80 dengan domain kamu untuk auto-HTTPS otomatis, misal: kost.namadomain.com
+    auto_https off
+}
+
+:80 {
+    # Proxy API & websocket ke backend
+    handle /api/* {
+        reverse_proxy api:8080 {
+            header_up X-Real-IP {remote_host}
+        }
+    }
+
+    handle /ws* {
+        reverse_proxy api:8080 {
+            header_up X-Real-IP {remote_host}
+        }
+    }
+
+    # Sisanya diarahkan ke frontend (Vue build, disajikan lewat nginx/serve di image frontend)
+    handle {
+        reverse_proxy frontend:80
+    }
+}

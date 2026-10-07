@@ -1,0 +1,23 @@
+[Unit]
+Description=Smart Kost - Ingest Service (MQTT subscriber + gRPC server)
+After=network-online.target mosquitto.service influxdb.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=supriadi
+WorkingDirectory=/home/supriadi/Dev/smartkost
+EnvironmentFile=/home/supriadi/Dev/smartkost/.env
+ExecStart=/home/supriadi/Dev/smartkost/bin/ingest
+Restart=on-failure
+RestartSec=5
+# Batasi resource supaya tidak "makan" semua RAM kalau ada bug/leak.
+MemoryMax=512M
+
+# Hardening dasar (opsional tapi disarankan untuk service yang selalu nyala)
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/home/supriadi/Dev/smartkost/data
+
+[Install]
+WantedBy=multi-user.target

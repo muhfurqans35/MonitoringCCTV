@@ -1,0 +1,7 @@
+[package]
+name = "dvrip"
+edition.workspace = true
+version.workspace = true
+description = "Klien DVRIP biner (NVR XMEye/Xiongmai lama): cari rekaman, playback, alarm. Hanya std."
+
+[dependencies]

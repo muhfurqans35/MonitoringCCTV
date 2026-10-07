@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#1f5e4b" />
+    <title>Smart Kost</title>
+    <!-- Plus Jakarta Sans; tanpa internet otomatis memakai font sistem (lihat --font di style.css). -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" />
+    <link rel="stylesheet" href="/style-8e7d8d2c7480e123.css" integrity="sha384-EmAdPfWpVlix/j2PFRbzTwTVhinDYb74HqOO2UXLj4bokupqboqHakJhHp23tDJ5"/>
+<link rel="modulepreload" href="/frontend-leptos-c61b2291f65e3ba7.js" crossorigin="anonymous" integrity="sha384-xf/Ur7QI6D6HBxx9BGtyENOXZRnoY624JlZpf68fsp5UbKfYW5o/ckCJwXJtgwW2"><link rel="preload" href="/frontend-leptos-c61b2291f65e3ba7_bg.wasm" crossorigin="anonymous" integrity="sha384-6XjPMQg4c6EemmLJ9QHvzWrXTpN+1XKBwqN9muiZxbprCB4DdVjFblaj0jdPCYxU" as="fetch" type="application/wasm"></head>
+<body>
+<script type="module">
+import init, * as bindings from '/frontend-leptos-c61b2291f65e3ba7.js';
+const wasm = await init({ module_or_path: '/frontend-leptos-c61b2291f65e3ba7_bg.wasm' });
+
+
+window.wasmBindings = bindings;
+
+
+dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
+
+</script></body>
+</html>

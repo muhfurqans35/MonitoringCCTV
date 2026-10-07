@@ -1,0 +1,36 @@
+# syntax=docker/dockerfile:1
+
+# --- Stage 1: cargo-chef prepare (analisa dependency graph) ---
+FROM lukemathwalker/cargo-chef:latest-rust-1.78-bookworm AS chef
+WORKDIR /app
+
+FROM chef AS planner
+COPY Cargo.toml Cargo.lock* ./
+COPY crates ./crates
+RUN cargo chef prepare --recipe-path recipe.json
+
+# --- Stage 2: build dependency saja (di-cache, tidak berubah kalau source code berubah) ---
+FROM chef AS builder
+COPY --from=planner /app/recipe.json recipe.json
+# Build dependency doorbell saja (di-cache, tidak berubah kalau source code berubah).
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/app/target \
+    cargo chef cook --release --recipe-path recipe.json -p doorbell
+
+# --- Stage 3: build binary doorbell saja (cepat, dependency sudah di-cache) ---
+COPY Cargo.toml Cargo.lock* ./
+COPY crates ./crates
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/app/target \
+    cargo build --release -p doorbell && \
+    cp target/release/doorbell /app/doorbell-bin
+
+# --- Runtime stage: cuma binary + lib minimal ---
+FROM debian:bookworm-slim
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates libsqlite3-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /app/doorbell-bin /usr/local/bin/doorbell
+
+EXPOSE 9091
+ENTRYPOINT ["/usr/local/bin/doorbell"]

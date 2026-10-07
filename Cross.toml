@@ -1,0 +1,23 @@
+# Konfigurasi `cross` untuk cross-compile project ini ke Raspberry Pi 4B (64-bit).
+# Dokumentasi: https://github.com/cross-rs/cross
+#
+# File ini dibaca otomatis oleh `cross` saat kamu jalankan:
+#   cross build --release --target aarch64-unknown-linux-gnu -p <nama-binary>
+
+[target.aarch64-unknown-linux-gnu]
+# Image default cross-rs sudah termasuk linker & sysroot untuk aarch64-gnu,
+# jadi untuk project ini sebenarnya tidak wajib override image. Baris di bawah
+# didaftarkan sebagai referensi kalau nanti butuh custom image (misal kalau
+# menambah dependency C yang butuh library sistem tambahan seperti OpenSSL versi
+# tertentu untuk target ARM).
+# image = "ghcr.io/cross-rs/aarch64-unknown-linux-gnu:main"
+
+# Jika nanti menambah crate yang butuh library native tambahan (contoh: openssl-sys,
+# atau kalau pindah ke SQLite via libsqlite3-sys dengan fitur "bundled" dimatikan),
+# override Dockerfile custom di sini, contoh:
+# [target.aarch64-unknown-linux-gnu]
+# dockerfile = "./deploy/cross/Dockerfile.aarch64"
+
+[build]
+# Build seluruh workspace secara default kalau tidak spesifik -p <nama>.
+# Dibiarkan default (tidak override) supaya perilaku sama seperti `cargo build` biasa.

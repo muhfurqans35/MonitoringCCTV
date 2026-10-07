@@ -1,0 +1,44 @@
+[Unit]
+Description=Smart Kost - API Gateway (axum REST + WebSocket)
+After=network-online.target smartkost-ingest.service influxdb.service smartkost-go2rtc.service
+Wants=network-online.target
+Requires=smartkost-ingest.service
+
+[Service]
+Type=simple
+User=supriadi
+WorkingDirectory=/home/supriadi/Dev/smartkost
+EnvironmentFile=/home/supriadi/Dev/smartkost/.env
+Environment=NVR_CONFIG=/home/supriadi/Dev/smartkost/config/nvr.toml
+# Folder hasil service vision (snapshot + JSON deteksi) untuk galeri di dashboard.
+Environment=VISION_DIR=/home/supriadi/Dev/smartkost/data/vision
+# Klip playback NVR sementara (MP4, dihapus otomatis setelah 24 jam). Butuh ffmpeg terpasang.
+Environment=NVR_CLIP_DIR=/home/supriadi/Dev/smartkost/data/nvr-clips
+# Keamanan: hanya dengar localhost (akses dari luar lewat nginx). Sesi login: lihat docs/SECURITY.md.
+Environment=API_BIND=127.0.0.1
+ExecStart=/home/supriadi/Dev/smartkost/bin/api
+Restart=on-failure
+RestartSec=5
+MemoryMax=512M
+
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+RestrictNamespaces=true
+LockPersonality=true
+SystemCallArchitectures=native
+CapabilityBoundingSet=
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK
+UMask=0077
+ReadWritePaths=/home/supriadi/Dev/smartkost/data
+
+[Install]
+WantedBy=multi-user.target

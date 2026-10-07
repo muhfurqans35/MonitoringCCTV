@@ -1,0 +1,179 @@
+version: "3.9"
+
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: mosquitto
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./deploy/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_log:/mosquitto/log
+    restart: unless-stopped
+    networks: [smartkost]
+
+  influxdb:
+    image: influxdb:2.7
+    container_name: influxdb
+    ports:
+      - "8086:8086"
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: ${INFLUX_USER}
+      DOCKER_INFLUXDB_INIT_PASSWORD: ${INFLUX_PASSWORD}
+      DOCKER_INFLUXDB_INIT_ORG: ${INFLUX_ORG}
+      DOCKER_INFLUXDB_INIT_BUCKET: ${INFLUX_BUCKET}
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ${INFLUX_TOKEN}
+    volumes:
+      - influx_data:/var/lib/influxdb2
+    restart: unless-stopped
+    networks: [smartkost]
+
+  # --- ingest: subscriber MQTT (rumqttc) + gRPC server (tonic) ---
+  ingest:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.ingest
+    container_name: ingest-service
+    depends_on:
+      - mosquitto
+      - influxdb
+    environment:
+      MQTT_BROKER_HOST: mosquitto
+      MQTT_BROKER_PORT: 1883
+      MQTT_USERNAME: ${MQTT_USERNAME}
+      MQTT_PASSWORD: ${MQTT_PASSWORD}
+      INFLUX_URL: http://influxdb:8086
+      INFLUX_TOKEN: ${INFLUX_TOKEN}
+      INFLUX_ORG: ${INFLUX_ORG}
+      INFLUX_BUCKET: ${INFLUX_BUCKET}
+      SQLITE_PATH: sqlite:///data/smartkost.db
+      GRPC_PORT: ${GRPC_PORT}
+      RUST_LOG: info
+    volumes:
+      - sqlite_data:/data
+    restart: unless-stopped
+    networks: [smartkost]
+
+  # --- doorbell: bel pintu interaktif (node ESP32 layar sentuh) -> verifikasi paket + bot Telegram ---
+  # Satu-satunya service yang memanggil getUpdates Telegram (long polling); alertengine hanya mengirim.
+  doorbell:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.doorbell
+    container_name: doorbell-service
+    depends_on:
+      - mosquitto
+      - ingest
+    environment:
+      MQTT_BROKER_HOST: mosquitto
+      MQTT_BROKER_PORT: 1883
+      MQTT_USERNAME: ${MQTT_USERNAME}
+      MQTT_PASSWORD: ${MQTT_PASSWORD}
+      SQLITE_PATH: sqlite:///data/smartkost.db
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      TELEGRAM_OWNER_CHAT_ID: ${TELEGRAM_OWNER_CHAT_ID}
+      DOORBELL_GRPC_PORT: ${DOORBELL_GRPC_PORT}
+      DOORBELL_CONFIG: /app/config/doorbell.toml
+      DOORBELL_DATA_DIR: /var/lib/doorbell
+      DOORBELL_CAMERA_TOKEN: ${DOORBELL_CAMERA_TOKEN}
+      RUST_LOG: info
+    volumes:
+      - sqlite_data:/data
+      - doorbell_data:/var/lib/doorbell
+      - ./config/doorbell.toml:/app/config/doorbell.toml:ro
+    restart: unless-stopped
+    networks: [smartkost]
+
+  # --- api: REST + WebSocket (axum), client gRPC ke ingest & doorbell ---
+  api:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.api
+    container_name: api-gateway
+    depends_on:
+      - ingest
+      - influxdb
+      - doorbell
+    environment:
+      SQLITE_PATH: sqlite:///data/smartkost.db
+      INFLUX_URL: http://influxdb:8086
+      INFLUX_TOKEN: ${INFLUX_TOKEN}
+      INFLUX_ORG: ${INFLUX_ORG}
+      INFLUX_BUCKET: ${INFLUX_BUCKET}
+      INGEST_GRPC_ADDR: http://ingest-service:${GRPC_PORT}
+      DOORBELL_GRPC_ADDR: http://doorbell-service:${DOORBELL_GRPC_PORT}
+      JWT_SECRET: ${JWT_SECRET}
+      API_PORT: ${API_PORT}
+      API_BIND: 0.0.0.0
+      # IP container caddy agar IP asli pengunjung dipakai pembatas login (lihat docs/SECURITY.md)
+      TRUSTED_PROXIES: ${TRUSTED_PROXIES:-}
+      RUST_LOG: info
+    volumes:
+      - sqlite_data:/data
+    # Port 8080 tidak dibuka ke host: akses lewat caddy (satu pintu).
+    restart: unless-stopped
+    networks: [smartkost]
+
+  # --- alertengine: worker evaluasi anomali + notifier Telegram ---
+  alertengine:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.alertengine
+    container_name: alert-engine
+    depends_on:
+      - influxdb
+      - ingest
+    environment:
+      SQLITE_PATH: sqlite:///data/smartkost.db
+      INFLUX_URL: http://influxdb:8086
+      INFLUX_TOKEN: ${INFLUX_TOKEN}
+      INFLUX_ORG: ${INFLUX_ORG}
+      INFLUX_BUCKET: ${INFLUX_BUCKET}
+      INGEST_GRPC_ADDR: http://ingest-service:${GRPC_PORT}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      TELEGRAM_OWNER_CHAT_ID: ${TELEGRAM_OWNER_CHAT_ID}
+      RUST_LOG: info
+    volumes:
+      - sqlite_data:/data
+    restart: unless-stopped
+    networks: [smartkost]
+
+  # --- frontend: Leptos (wasm) di-build via Trunk, disajikan nginx ---
+  frontend:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.frontend
+    container_name: web-frontend
+    restart: unless-stopped
+    networks: [smartkost]
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: caddy
+    depends_on:
+      - api
+      - frontend
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/caddy/Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    restart: unless-stopped
+    networks: [smartkost]
+
+networks:
+  smartkost:
+    driver: bridge
+
+volumes:
+  mosquitto_data:
+  mosquitto_log:
+  influx_data:
+  sqlite_data:
+  doorbell_data:
+  caddy_data:
+  caddy_config:

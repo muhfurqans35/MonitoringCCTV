@@ -1,0 +1,19 @@
+syntax = "proto3";
+package smartkost.alert;
+
+// AlertService diimplementasi oleh "ingest" (yang paling dekat sumber event mentah,
+// misal CCTV motion event) supaya "alertengine" dan "api" bisa subscribe tanpa
+// polling MQTT sendiri-sendiri.
+service AlertService {
+  rpc StreamAlerts (StreamAlertsRequest) returns (stream AlertNotification);
+}
+
+message StreamAlertsRequest {}
+
+message AlertNotification {
+  string source = 1;       // "room_K01", "gate_cam_1", "corridor_2"
+  string alert_type = 2;   // power_anomaly | night_motion | loitering | device_offline
+  string severity = 3;     // info | warning | critical
+  string message = 4;
+  int64 timestamp_unix = 5;
+}

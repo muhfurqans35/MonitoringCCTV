@@ -1,0 +1,25 @@
+[Unit]
+Description=Smart Kost - Doorbell (bel pintu interaktif: verifikasi paket + bot Telegram)
+After=network-online.target mosquitto.service smartkost-ingest.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=supriadi
+WorkingDirectory=/home/supriadi/Dev/smartkost
+EnvironmentFile=/home/supriadi/Dev/smartkost/.env
+# Konfigurasi & data (foto zona, referensi kosong). Data harus di bawah folder data (satu-satunya yang bisa ditulis).
+Environment=DOORBELL_CONFIG=/home/supriadi/Dev/smartkost/config/doorbell.toml
+Environment=DOORBELL_DATA_DIR=/home/supriadi/Dev/smartkost/data/doorbell
+ExecStart=/home/supriadi/Dev/smartkost/bin/doorbell
+Restart=on-failure
+RestartSec=5
+# Decode JPEG + selisih frame kecil (64x48); footprint ringan.
+MemoryMax=256M
+
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/home/supriadi/Dev/smartkost/data
+
+[Install]
+WantedBy=multi-user.target

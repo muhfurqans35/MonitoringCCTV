@@ -1,0 +1,32 @@
+[package]
+name = "doorbell"
+edition.workspace = true
+version.workspace = true
+
+[[bin]]
+name = "doorbell"
+path = "src/main.rs"
+
+[dependencies]
+common = { path = "../common" }
+proto = { path = "../proto" }
+
+tokio.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+anyhow.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+chrono.workspace = true
+uuid.workspace = true
+
+sqlx.workspace = true
+rumqttc.workspace = true
+tonic.workspace = true
+reqwest = { workspace = true, features = ["multipart"] }
+
+# Konfigurasi (config/doorbell.toml), sama seperti vision (config/cameras.toml)
+toml = "0.8"
+
+# Deteksi zona paket: decode JPEG -> grayscale, crop ROI, encode JPEG untuk foto bukti
+image = { version = "0.25", default-features = false, features = ["jpeg"] }

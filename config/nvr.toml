@@ -1,0 +1,69 @@
+# Config NVR untuk live view dari kamera / NVR Xihancam.
+# Fokus utama adalah live stream RTSP dari port 554 melalui go2rtc.
+# Replay tidak disediakan di aplikasi web; hanya bisa diakses dari jaringan lokal NVR
+# atau melalui akses fisik langsung ke perangkat NVR.
+
+ip = "192.168.1.200"
+username = "admin"
+password = ""
+rtsp_port = 554
+
+# Pola RTSP yang sudah diverifikasi di VLC untuk NVR Xihancam / XMEye / seri OEM.
+# Bentuknya: rtsp://192.168.1.200:554/user=admin&password=&channel=2&stream=1.sdp?real_stream
+live_url_pattern = "rtsp://{ip}:{rtsp_port}/user={username}&password={password}&channel={channel}&stream=1.sdp?real_stream"
+
+[[channels]]
+id = "gate_left"
+label = "Jalanan Kiri Gerbang"
+channel_number = 4
+
+[[channels]]
+id = "gate_right"
+label = "Jalanan Kanan Gerbang"
+channel_number = 5
+
+[[channels]]
+id = "main_gate"
+label = "Gerbang Utama"
+channel_number = 3
+
+[[channels]]
+id = "kost"
+label = "Area Kost"
+channel_number = 2
+
+# ---------------------------------------------------------------------------------------------
+# Service vision: analisis CCTV dari stream yang sama dengan live view (lewat go2rtc).
+# Semua baris di bawah OPSIONAL (nilai yang tertulis = default). Hapus "#" untuk mengubah.
+# Frame -> deteksi gerak (murah) -> bila bergerak: model ONNX -> simpan JPEG+JSON -> MQTT event.
+# ---------------------------------------------------------------------------------------------
+[vision]
+# go2rtc_url = "http://127.0.0.1:1984"
+# stream_suffix = ""            # "_sub" = pakai stream <id>_sub (substream) di go2rtc.yaml
+# interval_ms = 2000            # jeda ambil frame per kamera
+# channels = []                 # kosong = semua [[channels]]; mis. ["gate_right", "main_gate"]
+# cooldown_seconds = 30         # min. jeda antar-event per kamera
+# snapshot_dir = "data/vision"  # JPEG + JSON per event: <id>/<tanggal>/<jam>_<label>.jpg/.json
+# keep_days = 14                # 0 = simpan selamanya
+# only_objects = true           # HANYA orang/kendaraan yang disimpan & dikirim (butuh file model!)
+# save_empty_motion = false     # (only_objects=false) simpan juga gerakan tanpa objek
+# publish_motion_without_detection = false
+
+[vision.motion]
+# width = 160                   # lebar gambar kerja deteksi gerak
+# pixel_threshold = 25          # selisih abu-abu per piksel agar dianggap berubah
+# min_fraction = 0.015          # porsi piksel berubah di ROI agar disebut gerakan
+# max_fraction = 0.6            # di atas ini = perubahan cahaya (lampu/IR), diabaikan
+# consecutive = 2               # frame berturut-turut sebelum memicu
+
+[vision.motion.roi]
+# Area deteksi per kamera [x, y, lebar, tinggi] dalam pecahan 0-1 (tanpa baris = seluruh frame).
+# gate_right = [0.0, 0.25, 1.0, 0.75]
+
+[vision.model]
+# path = "models/yolov8n.onnx"  # tidak ada file = tanpa deteksi objek (event "motion")
+# input_size = 320              # harus sama dengan imgsz saat export (yolo export ... imgsz=320)
+# confidence = 0.45
+# classes = ["person", "bicycle", "car", "motorcycle", "bus", "truck"]
+# max_concurrent = 1
+

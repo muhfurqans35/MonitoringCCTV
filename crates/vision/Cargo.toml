@@ -1,0 +1,29 @@
+[package]
+name = "vision"
+edition.workspace = true
+version.workspace = true
+
+[[bin]]
+name = "vision"
+path = "src/main.rs"
+
+[dependencies]
+common = { path = "../common" }
+dvrip = { path = "../dvrip" }
+tokio.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+anyhow.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+chrono.workspace = true
+
+reqwest.workspace = true
+rumqttc.workspace = true
+
+# Bagian [vision] di config/nvr.toml
+toml = "0.8"
+
+# Inference model ringan (ONNX) - pure Rust, gampang di-cross-compile
+tract-onnx = "0.21"
+image = { version = "0.25", default-features = false, features = ["jpeg", "png"] }

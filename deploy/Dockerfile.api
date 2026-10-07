@@ -1,0 +1,31 @@
+# syntax=docker/dockerfile:1
+
+FROM lukemathwalker/cargo-chef:latest-rust-1.78-bookworm AS chef
+WORKDIR /app
+
+FROM chef AS planner
+COPY Cargo.toml Cargo.lock* ./
+COPY crates ./crates
+RUN cargo chef prepare --recipe-path recipe.json
+
+FROM chef AS builder
+COPY --from=planner /app/recipe.json recipe.json
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/app/target \
+    cargo chef cook --release --recipe-path recipe.json -p api
+
+COPY Cargo.toml Cargo.lock* ./
+COPY crates ./crates
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/app/target \
+    cargo build --release -p api && \
+    cp target/release/api /app/api-bin
+
+FROM debian:bookworm-slim
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates libsqlite3-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /app/api-bin /usr/local/bin/api
+
+EXPOSE 8080
+ENTRYPOINT ["/usr/local/bin/api"]

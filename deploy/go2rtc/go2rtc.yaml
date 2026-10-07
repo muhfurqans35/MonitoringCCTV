@@ -1,0 +1,28 @@
+# Config go2rtc — relay RTSP ke format yang browser bisa mainkan (WebRTC/MSE/HLS),
+# TANPA transcode (hemat CPU RPi4). Live view didaftarkan statis di sini; playback
+# didaftarkan dinamis saat diminta lewat REST API go2rtc sendiri (dipanggil dari
+# crates/api, lihat crates/api/src/routes/cctv.rs).
+#
+# GANTI username/password/ip di bawah sesuai config/nvr.toml kamu (go2rtc baca file
+# YAML sendiri, tidak otomatis sinkron dengan nvr.toml -- kalau ganti salah satu,
+# update juga yang satunya).
+
+api:
+  listen: "127.0.0.1:1984"
+
+streams:
+  gate_left:
+    - "rtsp://192.168.1.200:554/user=admin&password=&channel=4&stream=1.sdp?real_stream"
+  gate_right:
+    - "rtsp://192.168.1.200:554/user=admin&password=&channel=5&stream=1.sdp?real_stream"
+  main_gate:
+    - "rtsp://192.168.1.200:554/user=admin&password=&channel=3&stream=1.sdp?real_stream"
+  kost:
+    - "rtsp://192.168.1.200:554/user=admin&password=&channel=2&stream=1.sdp?real_stream"
+  # --- OPSIONAL: kamera pintu ESP32-S3 (modul doorbell) sebagai video MJPEG ---
+  # Dashboard TIDAK membutuhkan ini (panel "Kamera pintu" memakai snapshot lewat hub).
+  # Aktifkan hanya bila ingin video penuh di jaringan lokal. Ganti IP dan token
+  # (= DEVICE_TOKEN di secrets.h firmware). Node hanya melayani 1 stream sekaligus,
+  # jadi go2rtc menjadi satu-satunya penonton dan membagikannya ke banyak browser.
+  # door_depan:
+  #   - "http://192.168.1.50:81/stream?token=ganti-token-acak"

@@ -1,0 +1,62 @@
+syntax = "proto3";
+package smartkost.doorbell;
+
+// DoorbellService diimplementasi oleh service "doorbell" (pemilik koneksi MQTT ke node pintu
+// dan bot Telegram). Service "api" memanggilnya untuk aksi dari dashboard, mengikuti pola
+// TelemetryService (ingest) yang sudah ada.
+service DoorbellService {
+  rpc GetStatus (StatusRequest) returns (StatusResponse);
+  rpc SetMode (SetModeRequest) returns (ActionResponse);
+  rpc CreateInvite (CreateInviteRequest) returns (CreateInviteResponse);
+  rpc ClosePackage (ClosePackageRequest) returns (ActionResponse);
+  rpc Calibrate (CalibrateRequest) returns (ActionResponse);
+  // Foto terbaru dari kamera node pintu (penuh, bukan potongan zona) utk live view dashboard.
+  rpc Snapshot (SnapshotRequest) returns (SnapshotResponse);
+}
+
+message StatusRequest {}
+
+message StatusResponse {
+  string door_id = 1;
+  string mode = 2;
+  bool node_online = 3;
+  string node_ip = 4;
+  string node_cfg_ver = 5;
+  string hub_cfg_ver = 6;
+  bool calibrated = 7;
+  int64 waiting = 8;
+  int64 verifying = 9;
+  repeated string modes = 10;
+  // Dari payload status MQTT node (field "cam", "cam_sensor", "cam_err", "stream_url").
+  bool camera_ok = 11;
+  string camera_sensor = 12;
+  string camera_error = 13;
+  string stream_url = 14;
+}
+
+message SetModeRequest { string mode = 1; }
+message CreateInviteRequest { string room_code = 1; }
+
+message CreateInviteResponse {
+  bool ok = 1;
+  string code = 2;
+  string message = 3;
+  int32 ttl_hours = 4;
+}
+
+message ClosePackageRequest { int64 id = 1; }
+message CalibrateRequest {}
+
+message ActionResponse {
+  bool ok = 1;
+  string message = 2;
+}
+
+message SnapshotRequest {}
+
+message SnapshotResponse {
+  bool ok = 1;
+  bytes jpeg = 2;          // kosong bila ok = false
+  string message = 3;      // alasan gagal (IP belum diketahui, token salah, timeout, ...)
+  int64 captured_at_ms = 4; // epoch ms saat foto diambil hub
+}

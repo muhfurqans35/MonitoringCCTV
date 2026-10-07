@@ -1,0 +1,50 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/common",
+    "crates/proto",
+    "crates/ingest",
+    "crates/api",
+    "crates/alertengine",
+    "crates/vision",
+    "crates/doorbell",
+    "crates/dvrip",
+]
+
+[workspace.package]
+edition = "2021"
+version = "0.1.0"
+
+[workspace.dependencies]
+tokio = { version = "1.38", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+anyhow = "1"
+thiserror = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+chrono = { version = "0.4", features = ["serde"] }
+dotenvy = "0.15"
+
+sqlx = { version = "0.7", features = ["runtime-tokio", "sqlite", "chrono", "macros"] }
+
+axum = { version = "0.7", features = ["ws"] }
+tower = "0.4"
+tower-http = { version = "0.5", features = ["cors", "trace", "fs", "set-header"] }
+
+tonic = "0.11"
+tonic-build = "0.11"
+prost = "0.12"
+
+rumqttc = "0.24"
+
+jsonwebtoken = "9"
+
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+
+uuid = { version = "1", features = ["v4", "serde"] }
+
+[profile.release]
+strip = true
+lto = "thin"
+codegen-units = 1

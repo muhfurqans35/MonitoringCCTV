@@ -1,0 +1,34 @@
+syntax = "proto3";
+package smartkost.telemetry;
+
+// TelemetryService diimplementasi oleh service "ingest" (server) dan dipanggil
+// oleh service "api" (client) untuk mengambil snapshot data live tanpa
+// bolak-balik query InfluxDB dari api — ingest yang paling dekat dengan data terbaru.
+service TelemetryService {
+  // Ambil status occupancy & daya terkini seluruh kamar (snapshot in-memory di ingest).
+  rpc GetLiveSnapshot (LiveSnapshotRequest) returns (LiveSnapshotResponse);
+
+  // Stream update realtime untuk 1 kamar tertentu (dipakai api untuk relay ke WebSocket frontend).
+  rpc StreamRoomTelemetry (StreamRoomRequest) returns (stream RoomTelemetry);
+}
+
+message LiveSnapshotRequest {}
+
+message LiveSnapshotResponse {
+  repeated RoomTelemetry rooms = 1;
+}
+
+message RoomTelemetry {
+  string room_code = 1;
+  bool presence = 2;
+  float distance_cm = 3;
+  float voltage = 4;
+  float current = 5;
+  float watt = 6;
+  float kwh_cumulative = 7;
+  int64 timestamp_unix = 8;
+}
+
+message StreamRoomRequest {
+  string room_code = 1;
+}

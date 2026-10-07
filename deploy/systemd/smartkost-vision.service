@@ -1,0 +1,38 @@
+[Unit]
+Description=Smart Kost - Vision Service (frame CCTV via go2rtc + deteksi gerak + model ONNX ringan)
+After=network-online.target mosquitto.service smartkost-go2rtc.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=supriadi
+WorkingDirectory=/home/supriadi/Dev/smartkost
+EnvironmentFile=/home/supriadi/Dev/smartkost/.env
+# Daftar kamera & pengaturan [vision] diambil dari nvr.toml (sama dengan live view). cameras.toml tidak dipakai.
+Environment=NVR_CONFIG=/home/supriadi/Dev/smartkost/config/nvr.toml
+ExecStart=/home/supriadi/Dev/smartkost/bin/vision
+Restart=on-failure
+RestartSec=5
+MemoryMax=768M
+
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+RestrictNamespaces=true
+LockPersonality=true
+SystemCallArchitectures=native
+CapabilityBoundingSet=
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK
+UMask=0077
+ReadWritePaths=/home/supriadi/Dev/smartkost/data
+
+[Install]
+WantedBy=multi-user.target
